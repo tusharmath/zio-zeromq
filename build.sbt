@@ -10,3 +10,7 @@ ThisBuild / libraryDependencies := Seq(
 )
 
 ThisBuild / testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+
+ThisBuild / scalacOptions := Seq(
+  "-language:postfixOps"
+)
