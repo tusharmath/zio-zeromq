@@ -8,18 +8,18 @@ import scala.language.experimental.macros
 object Socket {
 
   abstract sealed class SocketType(val jSocketType: jeromq.SocketType)
-  object Pair   extends SocketType(jeromq.SocketType.PAIR)
-  object Pub    extends SocketType(jeromq.SocketType.PUB)
-  object Sub    extends SocketType(jeromq.SocketType.SUB)
-  object Req    extends SocketType(jeromq.SocketType.REQ)
-  object Rep    extends SocketType(jeromq.SocketType.REP)
-  object Dealer extends SocketType(jeromq.SocketType.DEALER)
-  object Router extends SocketType(jeromq.SocketType.ROUTER)
-  object Pull   extends SocketType(jeromq.SocketType.PULL)
-  object Push   extends SocketType(jeromq.SocketType.PUSH)
-  object XPub   extends SocketType(jeromq.SocketType.XPUB)
-  object XSub   extends SocketType(jeromq.SocketType.XSUB)
-  object Stream extends SocketType(jeromq.SocketType.STREAM)
+  object PAIR   extends SocketType(jeromq.SocketType.PAIR)
+  object PUB    extends SocketType(jeromq.SocketType.PUB)
+  object SUB    extends SocketType(jeromq.SocketType.SUB)
+  object REQ    extends SocketType(jeromq.SocketType.REQ)
+  object REP    extends SocketType(jeromq.SocketType.REP)
+  object DEALER extends SocketType(jeromq.SocketType.DEALER)
+  object ROUTER extends SocketType(jeromq.SocketType.ROUTER)
+  object PULL   extends SocketType(jeromq.SocketType.PULL)
+  object PUSH   extends SocketType(jeromq.SocketType.PUSH)
+  object XPUB   extends SocketType(jeromq.SocketType.XPUB)
+  object XSUB   extends SocketType(jeromq.SocketType.XSUB)
+  object STREAM extends SocketType(jeromq.SocketType.STREAM)
 
   trait Service[A <: SocketType] {
     def bind(address: String): Task[Boolean]
