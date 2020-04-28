@@ -1,19 +1,22 @@
 package zeromq
 
-import zio.{Task, UIO}
+import zio.{Task}
 import org.{zeromq => jeromq}
 import zio.ZManaged
 import zio.ZLayer
 
 object Context {
+  type ManagedContext = ZManaged[Any, Nothing, Service]
+  type ZLayerContext  = ZLayer[Any, Nothing, Context]
+
   trait Service {
-    def createSocket(socketType: jeromq.SocketType): UIO[jeromq.ZMQ.Socket]
+    def createSocket(socketType: jeromq.SocketType): Task[jeromq.ZMQ.Socket]
     def close: Task[Unit]
   }
 
   final class Live private (jContext: jeromq.ZContext) extends Service {
 
-    override def createSocket(socketType: jeromq.SocketType): UIO[jeromq.ZMQ.Socket] = UIO {
+    override def createSocket(socketType: jeromq.SocketType): Task[jeromq.ZMQ.Socket] = Task {
       jContext.createSocket(socketType)
     }
 
@@ -23,13 +26,12 @@ object Context {
   }
 
   object Live {
-    def open: ZManaged[Any, Throwable, Service] = open(new jeromq.ZContext())
-    def open(context: jeromq.ZContext): ZManaged[Any, Throwable, Service] =
-      UIO(new Live(context)).toManaged(_.close.orDie)
-    def open(ioThreads: Int): ZManaged[Any, Throwable, Service] = open(new jeromq.ZContext(ioThreads))
+    def open: ManagedContext                                 = open(Task { new jeromq.ZContext() })
+    def open(context: Task[jeromq.ZContext]): ManagedContext = context.map(new Live(_)).toManaged(_.close.orDie).orDie
+    def open(ioThreads: Int): ManagedContext                 = open(Task { new jeromq.ZContext(ioThreads) })
   }
 
-  def live: ZLayer[Any, Throwable, Context]                           = Live.open.toLayer
-  def live(context: jeromq.ZContext): ZLayer[Any, Throwable, Context] = Live.open(context).toLayer
-  def live(ioThreads: Int): ZLayer[Any, Throwable, Context]           = Live.open(ioThreads).toLayer
+  def live: ZLayerContext                                 = Live.open.toLayer
+  def live(context: Task[jeromq.ZContext]): ZLayerContext = Live.open(context).toLayer
+  def live(ioThreads: Int): ZLayerContext                 = Live.open(ioThreads).toLayer
 }
