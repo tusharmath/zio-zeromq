@@ -35,23 +35,28 @@ object Socket {
     def send(data: String): Task[Boolean]
   }
 
-  final class Live[A <: SocketType] private (jSocket: jeromq.ZMQ.Socket) extends Service[A] {
-    override def bind(address: String): Task[Boolean]            = Task { jSocket.bind(address) }
-    override def close: Task[Unit]                               = Task { jSocket.close() }
-    override def connect(address: String): Task[Boolean]         = Task { jSocket.connect(address) }
-    override def receive: Task[Option[Bytes]]                    = Task { Option(jSocket.recv()) }
-    override def receive(flags: Int): Task[Option[Bytes]]        = Task { Option(jSocket.recv(flags)) }
-    override def receiveString: Task[Option[String]]             = Task { Option(jSocket.recvStr()) }
-    override def receiveString(flags: Int): Task[Option[String]] = Task { Option(jSocket.recvStr(flags)) }
-    override def send(bytes: Bytes, flags: Int): Task[Boolean]   = Task { jSocket.send(bytes, flags) }
-    override def send(bytes: Bytes): Task[Boolean]               = Task { jSocket.send(bytes) }
-    override def send(data: String, flags: Int): Task[Boolean]   = Task { jSocket.send(data, flags) }
-    override def send(data: String): Task[Boolean]               = Task { jSocket.send(data) }
+  final class Live[A <: SocketType] private (sem: Semaphore, jSock: jeromq.ZMQ.Socket) extends Service[A] {
+    override def bind(address: String): Task[Boolean]            = sem.withPermit(Task { jSock.bind(address) })
+    override def close: Task[Unit]                               = sem.withPermit(Task { jSock.close() })
+    override def connect(address: String): Task[Boolean]         = sem.withPermit(Task { jSock.connect(address) })
+    override def receive: Task[Option[Bytes]]                    = sem.withPermit(Task { Option(jSock.recv()) })
+    override def receive(flags: Int): Task[Option[Bytes]]        = sem.withPermit(Task { Option(jSock.recv(flags)) })
+    override def receiveString: Task[Option[String]]             = sem.withPermit(Task { Option(jSock.recvStr()) })
+    override def receiveString(flags: Int): Task[Option[String]] = sem.withPermit(Task { Option(jSock.recvStr(flags)) })
+    override def send(bytes: Bytes, flags: Int): Task[Boolean]   = sem.withPermit(Task { jSock.send(bytes, flags) })
+    override def send(bytes: Bytes): Task[Boolean]               = sem.withPermit(Task { jSock.send(bytes) })
+    override def send(data: String, flags: Int): Task[Boolean]   = sem.withPermit(Task { jSock.send(data, flags) })
+    override def send(data: String): Task[Boolean]               = sem.withPermit(Task { jSock.send(data) })
   }
 
   object Live {
     def open[A <: SocketType](socketType: A, context: Context.Service): ZManaged[Any, Nothing, Service[A]] =
-      context.createSocket(socketType.jSocketType).map { new Live[A](_) }.toManaged(_.close.orDie).orDie
+      (for {
+        semaphore <- Semaphore.make(1)
+        jSocket   <- context.createSocket(socketType.jSocketType)
+      } yield new Live[A](semaphore, jSocket))
+        .toManaged(_.close.orDie)
+        .orDie
   }
 
   final class Type[A <: SocketType](socketType: A)(implicit t1: Tagged[Service[A]]) {

@@ -1,9 +1,7 @@
 package zeromq
 
-import zio.{Task}
 import org.{zeromq => jeromq}
-import zio.ZManaged
-import zio.ZLayer
+import zio.{Semaphore, Task, ZLayer, ZManaged}
 
 object Context {
   type ManagedContext = ZManaged[Any, Nothing, Service]
@@ -14,21 +12,21 @@ object Context {
     def close: Task[Unit]
   }
 
-  final class Live private (jContext: jeromq.ZContext) extends Service {
+  final class Live private (sem: Semaphore, jCont: jeromq.ZContext) extends Service {
+    override def createSocket(socketType: jeromq.SocketType): Task[jeromq.ZMQ.Socket] =
+      sem.withPermit(Task { jCont.createSocket(socketType) })
 
-    override def createSocket(socketType: jeromq.SocketType): Task[jeromq.ZMQ.Socket] = Task {
-      jContext.createSocket(socketType)
-    }
-
-    override def close: Task[Unit] = Task {
-      jContext.close()
-    }
+    override def close: Task[Unit] = sem.withPermit(Task { jCont.close() })
   }
 
   object Live {
-    def open: ManagedContext                                 = open(Task { new jeromq.ZContext() })
-    def open(context: Task[jeromq.ZContext]): ManagedContext = context.map(new Live(_)).toManaged(_.close.orDie).orDie
-    def open(ioThreads: Int): ManagedContext                 = open(Task { new jeromq.ZContext(ioThreads) })
+    def open: ManagedContext = open(Task { new jeromq.ZContext() })
+    def open(contextM: Task[jeromq.ZContext]): ManagedContext =
+      (for {
+        semaphore <- Semaphore.make(1)
+        context   <- contextM
+      } yield new Live(semaphore, context)).toManaged(_.close.orDie).orDie
+    def open(ioThreads: Int): ManagedContext = open(Task { new jeromq.ZContext(ioThreads) })
   }
 
   def live: ZLayerContext                                 = Live.open.toLayer
