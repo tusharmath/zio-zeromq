@@ -19,3 +19,5 @@ jobs:
         java-version: 1.8
     - name: Run tests
       run: sbt test
+    - name: Nexus Repository Publisher for GitHub Actions
+      uses: sonatype-nexus-community/nexus-repo-github-action@1.0.0
