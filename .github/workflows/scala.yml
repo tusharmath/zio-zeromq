@@ -21,3 +21,12 @@ jobs:
       run: sbt test
     - name: Nexus Repository Publisher for GitHub Actions
       uses: sonatype-nexus-community/nexus-repo-github-action@1.0.0
+      with:
+        serverUrl: https://oss.sonatype.org/content/repositories/snapshots
+        username: oe3Hn+yY
+        password: ${{ secrets.password }}
+        format: maven2
+        repository: maven-releases
+        coordinates: groupId=com.tusharmath artifactId=zeromq version=1.0.0
+        assets: extension=jar
+        filename: ./target/app-1.0.0.jar
