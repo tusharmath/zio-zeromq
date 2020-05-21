@@ -28,7 +28,7 @@ jobs:
         username: oe3Hn+yY
         password: ${{ secrets.password }}
         format: maven2
-        repository: maven-releases
+        repository: Releases
         coordinates: groupId=com.tusharmath artifactId=zeromq version=0.1.0
         assets: extension=jar
         filename: ./target/scala-2.13/zio-zeromq_2.13-0.1.0-SNAPSHOT.jar
