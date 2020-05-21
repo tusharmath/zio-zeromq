@@ -29,4 +29,4 @@ jobs:
         repository: maven-releases
         coordinates: groupId=com.tusharmath artifactId=zeromq version=1.0.0
         assets: extension=jar
-        filename: ./target/app-1.0.0.jar
+        filename: ./target/*/*.jar
